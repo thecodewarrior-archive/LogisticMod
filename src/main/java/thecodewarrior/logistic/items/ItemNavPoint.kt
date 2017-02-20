@@ -3,6 +3,7 @@ package thecodewarrior.logistic.items
 import com.teamwizardry.librarianlib.common.base.item.ItemMod
 import com.teamwizardry.librarianlib.common.util.ifCap
 import com.teamwizardry.librarianlib.common.util.plus
+import com.teamwizardry.librarianlib.common.util.sendSpamlessMessage
 import com.teamwizardry.librarianlib.common.util.vec
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.EnumActionResult
@@ -24,14 +25,10 @@ class ItemNavPoint : ItemMod("navPoint") {
             if(player.isSneaking) {
                 val list = cap.getNodes(pos.offset(facing))
                 if(list.isNotEmpty()) {
-                    val uuid = list.first().uuid
+                    val first = list.first()
 
-                    if (cap.tempBlah == null)
-                        cap.tempBlah = uuid
-                    else {
-                        cap.path(cap.tempBlah!!, uuid)
-                        cap.tempBlah = null
-                    }
+                    player.sendSpamlessMessage("Network ${first.networkID}", "net")
+
                 }
             } else {
                 if (cap.getNodes(pos.offset(facing)).isNotEmpty()) {

@@ -45,3 +45,16 @@ class PacketAddEdges : PacketBase() {
         }
     }
 }
+
+@PacketRegister(Side.CLIENT)
+class PacketRemoveEdges : PacketBase() {
+    @Save var idsFrom: Array<UUID> = arrayOf()
+    @Save var idsTo: Array<UUID> = arrayOf()
+
+    override fun handle(ctx: MessageContext) {
+        for(i in idsFrom.indices) {
+            val e = EdgeData(idsFrom[i], idsTo[i])
+            ClientLogisticTracker.edges.remove(e)
+        }
+    }
+}

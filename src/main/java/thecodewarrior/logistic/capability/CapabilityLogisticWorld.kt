@@ -24,6 +24,7 @@ import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.CapabilityInject
 import org.jgrapht.graph.DefaultWeightedEdge
 import org.jgrapht.graph.SimpleWeightedGraph
+import thecodewarrior.logistic.api.Network
 import thecodewarrior.logistic.util.AStar
 import java.util.*
 
@@ -55,6 +56,7 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
     val byID = mutableMapOf<UUID, LogisticNode>()
     val byOrigin: Multimap<BlockPos, LogisticNode> = HashMultimap.create()
     val byChunk: Multimap<ChunkCoord, LogisticNode> = HashMultimap.create()
+    val networks = mutableListOf<Network?>()
 
     val nodeSet: Set<LogisticNode>
         get() = graph.vertexSet()
@@ -78,7 +80,7 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         while(id in byID)
             id = UUID.randomUUID()
 
-        val node = LogisticNode(origin, pos, id)
+        val node = LogisticNode(origin, pos, id, -1)
         byOrigin.put(node.origin, node)
         byID.put(node.uuid, node)
         byChunk.put(ChunkCoord(node.pos), node)
@@ -90,10 +92,16 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
     }
 
     fun removeNode(node: LogisticNode) {
+        // toMutableList 'cause that creates a copy. Don't want any CME's up in my business
+        graph.edgesOf(node).toMutableList().forEach {
+            disconnect(graph.getEdgeSource(it), graph.getEdgeTarget(it))
+        }
         graph.removeVertex(node)
         byID.remove(node.uuid)
         byOrigin.remove(node.origin, node)
         byChunk.remove(ChunkCoord(node.pos), node)
+
+
 
         PacketHandler.NETWORK.sendToAllAround(PacketRemoveNodes().apply { ids = arrayOf(node.uuid) }, world, node.pos, 128)
     }
@@ -134,11 +142,13 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         return list
     }
 
-    fun path(from: UUID, to: UUID) {
+    fun path(from: UUID, to: UUID): List<UUID> {
         val fromNode = getNode(from)
         val toNode = getNode(to)
         if(fromNode == null || toNode == null)
-            return
+            return listOf()
+        if(fromNode.networkID != toNode.networkID || fromNode.networkID == -1 || toNode.networkID == -1)
+            return listOf()
         val path = AStar.pathfind(fromNode, toNode, graph, { (it.pos - toNode.pos).lengthSquared() }, { it * it })
         if(path.isEmpty()) {
             (world as? WorldServer)?.spawnParticle(EnumParticleTypes.SMOKE_LARGE, fromNode.pos.xCoord, fromNode.pos.yCoord, fromNode.pos.zCoord, 1, 0.0, 0.0, 0.0, 0.0)
@@ -148,12 +158,39 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
                 (world as? WorldServer)?.spawnParticle(EnumParticleTypes.BARRIER, node.pos.xCoord, node.pos.yCoord, node.pos.zCoord, 1, 0.0, 0.0, 0.0, 0.0)
             }
         }
+        return path.map { it.uuid }
+    }
+
+    fun flood(from: UUID): Set<LogisticNode> {
+        val visited = mutableSetOf<LogisticNode>()
+        val queued = LinkedList<LogisticNode>()
+
+        val n = getNode(from)!!
+        queued.add(n)
+        visited.add(n)
+
+        while(queued.isNotEmpty()) { // search algorithm doesn't really matter
+            val vert = queued.pop()
+            graph.edgesOf(vert).forEach { edge ->
+                var other = graph.getEdgeSource(edge)
+                if(other == vert)
+                    other = graph.getEdgeTarget(edge)
+
+                if(other !in visited) {
+                    queued.add(other)
+                    visited.add(other)
+                }
+            }
+        }
+
+        return visited
     }
 
     companion object {
         @JvmStatic
         @CapabilityInject(CapabilityLogisticWorld::class)
         lateinit var cap: Capability<CapabilityLogisticWorld>
+            private set
 
         fun init() {
             println("Init")
@@ -182,11 +219,100 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         graph.addEdge(a, b)
         graph.setEdgeWeight(graph.getEdge(a, b), (a.pos - b.pos).lengthVector())
 
+        if(a.networkID == -1 && b.networkID != -1) {
+            a.networkID = b.networkID
+            getNetwork(b.networkID)?.nodes?.add(a.uuid)
+        }
+
+        if(b.networkID == -1 && a.networkID != -1) {
+            b.networkID = a.networkID
+            getNetwork(a.networkID)?.nodes?.add(b.uuid)
+        }
+
+        if(a.networkID == -1 && b.networkID == -1) {
+            val net = createNetwork()
+            a.networkID = net.id
+            b.networkID = net.id
+            net.nodes.add(a.uuid)
+            net.nodes.add(b.uuid)
+        }
+
+        if(a.networkID != -1 && b.networkID != -1) {
+            val aNet = getNetwork(a.networkID)!!
+            val bNet = getNetwork(b.networkID)!!
+
+            removeNetwork(a.networkID)
+            removeNetwork(b.networkID)
+
+            val net = createNetwork()
+
+            net.nodes.addAll(aNet.nodes)
+            net.nodes.addAll(bNet.nodes)
+
+            net.nodes.forEach {
+                getNode(it)?.networkID = net.id
+            }
+        }
+
         PacketHandler.NETWORK.sendToAllAround(PacketAddEdges().apply { idsFrom = arrayOf(a.uuid); idsTo = arrayOf(b.uuid) }, world, a.pos, 128)
+    }
+
+    fun disconnect(a: LogisticNode, b: LogisticNode) {
+        if(a == b)
+            return
+
+        graph.removeEdge(a, b)
+
+        val p = path(a.uuid, b.uuid)
+        if(p.isEmpty()) { // we just separated two networks.
+
+            val aNet = getNetwork(a.networkID)
+            val bNet = createNetwork()
+
+            val bSide = flood(b.uuid)
+            val bUUID = bSide.map { it.uuid }
+
+            aNet.nodes.removeAll(bUUID)
+            bNet.nodes.addAll(bUUID)
+
+            bSide.forEach { it.networkID = bNet.id }
+        }
+
+        PacketHandler.NETWORK.sendToAllAround(PacketRemoveEdges().apply { idsFrom = arrayOf(a.uuid); idsTo = arrayOf(b.uuid) }, world, a.pos, 128)
     }
 
     fun areConnected(a: LogisticNode, b: LogisticNode): Boolean {
         return graph.containsEdge(a, b)
+    }
+
+    fun createNetwork(): Network {
+        val net = Network()
+        networks.forEachIndexed { i, it ->
+            if(it == null) {
+                net.id = i
+                networks[i] = net
+                return@createNetwork net
+            }
+        }
+        net.id = networks.size
+        networks.add(net)
+        return net
+    }
+
+    fun getNetwork(id: Int): Network? {
+        return networks.getOrNull(id)
+    }
+
+    fun removeNetwork(id: Int) {
+        if(id > 0 && id < networks.size)
+            networks[id] = null
+    }
+
+    fun removeEmptyNetworks() {
+        networks.forEachIndexed { i, it ->
+            if(it?.nodes?.size == 0)
+                removeNetwork(i)
+        }
     }
 }
 
@@ -197,11 +323,12 @@ data class ChunkCoord(val chunkX: Int, val chunkZ: Int) {
 
 @Savable
 open class LogisticNode
-@SavableConstructorOrder("origin", "pos", "uuid")
+@SavableConstructorOrder("origin", "pos", "uuid", "networkID")
     constructor(
             val origin: BlockPos,
             val pos: Vec3d,
-            val uuid: UUID
+            val uuid: UUID,
+            var networkID: Int
     ) {
 }
 
