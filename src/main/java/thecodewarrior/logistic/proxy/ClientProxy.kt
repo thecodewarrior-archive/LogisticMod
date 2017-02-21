@@ -1,6 +1,7 @@
 package thecodewarrior.logistic.proxy
 
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
+import thecodewarrior.logistic.render.RenderNetworkDrones
 import thecodewarrior.logistic.render.RenderNetworkLines
 
 /**
@@ -12,5 +13,6 @@ class ClientProxy : CommonProxy() {
         super.pre(e)
 
         RenderNetworkLines
+        RenderNetworkDrones
     }
 }

@@ -1,11 +1,13 @@
 package thecodewarrior.logistic.items
 
 import com.teamwizardry.librarianlib.common.base.item.ItemMod
+import com.teamwizardry.librarianlib.common.network.PacketHandler
 import com.teamwizardry.librarianlib.common.util.ifCap
 import com.teamwizardry.librarianlib.common.util.plus
 import com.teamwizardry.librarianlib.common.util.sendSpamlessMessage
 import com.teamwizardry.librarianlib.common.util.vec
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.util.EnumActionResult
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -13,12 +15,19 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
-import thecodewarrior.logistic.capability.CapabilityLogisticWorld
+import thecodewarrior.logistic.logistics.CapabilityLogisticWorld
+import thecodewarrior.logistic.logistics.PacketSetPaths
+import java.util.*
 
 /**
  * Created by TheCodeWarrior
  */
 class ItemNavPoint : ItemMod("navPoint") {
+
+    companion object {
+        var tempFooBar: UUID? = null
+    }
+
     override fun onItemUse(player: EntityPlayer, worldIn: World, pos: BlockPos, hand: EnumHand, facing: EnumFacing, hitX: Float, hitY: Float, hitZ: Float): EnumActionResult {
 
         return worldIn.ifCap(CapabilityLogisticWorld.cap, null) { cap ->
@@ -27,7 +36,24 @@ class ItemNavPoint : ItemMod("navPoint") {
                 if(list.isNotEmpty()) {
                     val first = list.first()
 
-                    player.sendSpamlessMessage("Network ${first.networkID}", "net")
+                    val uuid = first.uuid
+                    val t = tempFooBar
+                    if(t == null)
+                        tempFooBar = uuid
+                    else {
+                        tempFooBar = null
+                        val path = cap.path(t, uuid)
+
+                        val drone = cap.getIdleDrone()
+
+                        drone.path = path.toTypedArray()
+                        drone.idleAt = null
+
+                        if(player is EntityPlayerMP)
+                            PacketHandler.NETWORK.sendToDimension(PacketSetPaths().apply { ids = intArrayOf(drone.id); paths = arrayOf(path.toTypedArray()) }, player.world.provider.dimension)
+                    }
+
+                    player.sendSpamlessMessage("INetwork ${first.networkID}", "net")
 
                 }
             } else {

@@ -1,4 +1,4 @@
-package thecodewarrior.logistic.capability
+package thecodewarrior.logistic.logistics
 
 import com.google.common.collect.HashMultimap
 import com.google.common.collect.Multimap
@@ -7,10 +7,7 @@ import com.teamwizardry.librarianlib.common.base.capability.ICapabilityObjectPro
 import com.teamwizardry.librarianlib.common.network.PacketHandler
 import com.teamwizardry.librarianlib.common.network.sendToAllAround
 import com.teamwizardry.librarianlib.common.util.minus
-import com.teamwizardry.librarianlib.common.util.saving.Savable
-import com.teamwizardry.librarianlib.common.util.saving.SavableConstructorOrder
-import com.teamwizardry.librarianlib.common.util.saving.SaveMethodGetter
-import com.teamwizardry.librarianlib.common.util.saving.SaveMethodSetter
+import com.teamwizardry.librarianlib.common.util.saving.*
 import com.teamwizardry.librarianlib.common.util.toRl
 import net.minecraft.util.EnumParticleTypes
 import net.minecraft.util.math.AxisAlignedBB
@@ -24,7 +21,8 @@ import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.CapabilityInject
 import org.jgrapht.graph.DefaultWeightedEdge
 import org.jgrapht.graph.SimpleWeightedGraph
-import thecodewarrior.logistic.api.Network
+import thecodewarrior.logistic.api.INetwork
+import thecodewarrior.logistic.api.impl.Network
 import thecodewarrior.logistic.util.AStar
 import java.util.*
 
@@ -32,8 +30,6 @@ import java.util.*
  * Created by TheCodeWarrior
  */
 class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logisticWorld".toRl()) {
-
-    var tempBlah: UUID? = null
 
     @get:SaveMethodGetter("graph")
     @set:SaveMethodSetter("graph")
@@ -56,7 +52,9 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
     val byID = mutableMapOf<UUID, LogisticNode>()
     val byOrigin: Multimap<BlockPos, LogisticNode> = HashMultimap.create()
     val byChunk: Multimap<ChunkCoord, LogisticNode> = HashMultimap.create()
+    @Save
     val networks = mutableListOf<Network?>()
+    val drones = mutableListOf<LogisticDrone?>()
 
     val nodeSet: Set<LogisticNode>
         get() = graph.vertexSet()
@@ -100,8 +98,6 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         byID.remove(node.uuid)
         byOrigin.remove(node.origin, node)
         byChunk.remove(ChunkCoord(node.pos), node)
-
-
 
         PacketHandler.NETWORK.sendToAllAround(PacketRemoveNodes().apply { ids = arrayOf(node.uuid) }, world, node.pos, 128)
     }
@@ -237,7 +233,7 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
             net.nodes.add(b.uuid)
         }
 
-        if(a.networkID != -1 && b.networkID != -1) {
+        if(a.networkID != -1 && b.networkID != -1 && a.networkID != b.networkID) {
             val aNet = getNetwork(a.networkID)!!
             val bNet = getNetwork(b.networkID)!!
 
@@ -267,15 +263,17 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         if(p.isEmpty()) { // we just separated two networks.
 
             val aNet = getNetwork(a.networkID)
-            val bNet = createNetwork()
+            if(aNet != null) {
+                val bNet = createNetwork()
 
-            val bSide = flood(b.uuid)
-            val bUUID = bSide.map { it.uuid }
+                val bSide = flood(b.uuid)
+                val bUUID = bSide.map { it.uuid }
 
-            aNet.nodes.removeAll(bUUID)
-            bNet.nodes.addAll(bUUID)
+                aNet.nodes.removeAll(bUUID)
+                bNet.nodes.addAll(bUUID)
 
-            bSide.forEach { it.networkID = bNet.id }
+                bSide.forEach { it.networkID = bNet.id }
+            }
         }
 
         PacketHandler.NETWORK.sendToAllAround(PacketRemoveEdges().apply { idsFrom = arrayOf(a.uuid); idsTo = arrayOf(b.uuid) }, world, a.pos, 128)
@@ -285,21 +283,20 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
         return graph.containsEdge(a, b)
     }
 
-    fun createNetwork(): Network {
-        val net = Network()
+    fun createNetwork(): INetwork {
         networks.forEachIndexed { i, it ->
             if(it == null) {
-                net.id = i
+                val net = Network(i)
                 networks[i] = net
                 return@createNetwork net
             }
         }
-        net.id = networks.size
+        val net = Network(networks.size)
         networks.add(net)
         return net
     }
 
-    fun getNetwork(id: Int): Network? {
+    fun getNetwork(id: Int): INetwork? {
         return networks.getOrNull(id)
     }
 
@@ -314,6 +311,53 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
                 removeNetwork(i)
         }
     }
+
+    fun getIdleDrone(): LogisticDrone {
+        return drones.find { it?.idle ?: false } ?: createDrone()
+    }
+
+    fun createDrone(): LogisticDrone {
+        networks.forEachIndexed { i, it ->
+            if(it == null) {
+                val drone = LogisticDrone(i)
+                drones[i] = drone
+                return@createDrone drone
+            }
+        }
+        val drone = LogisticDrone(drones.size)
+        drones.add(drone)
+
+        PacketHandler.NETWORK.sendToDimension(PacketAddDrones().apply { ids = intArrayOf(drone.id) }, world.provider.dimension)
+
+        return drone
+    }
+
+    fun getDrone(id: Int): LogisticDrone? {
+        return drones.getOrNull(id)
+    }
+
+    fun removeDrone(id: Int) {
+        if(id > 0 && id < drones.size)
+            drones[id] = null
+    }
+
+    fun updateDrone(id: Int) {
+        getDrone(id)?.let { drone ->
+            if(!drone.idle) {
+                drone.progress += drone.speed
+                if (drone.progress >= drone.len) {
+                    drone.progress -= drone.len
+                    drone.nextIndex++
+                }
+                if (drone.nextIndex >= drone.path.size) {
+                    drone.idleAt = drone.path.last()
+                    drone.path = arrayOf()
+                    drone.nextIndex = 0
+                }
+            }
+//            drone.power--
+        }
+    }
 }
 
 data class ChunkCoord(val chunkX: Int, val chunkZ: Int) {
@@ -322,7 +366,7 @@ data class ChunkCoord(val chunkX: Int, val chunkZ: Int) {
 }
 
 @Savable
-open class LogisticNode
+class LogisticNode
 @SavableConstructorOrder("origin", "pos", "uuid", "networkID")
     constructor(
             val origin: BlockPos,
@@ -330,6 +374,19 @@ open class LogisticNode
             val uuid: UUID,
             var networkID: Int
     ) {
+}
+
+@Savable
+class LogisticDrone(val id: Int) {
+    var idleAt: UUID? = null
+    val idle: Boolean
+        get() = idleAt != null
+    var path: Array<UUID> = arrayOf()
+    var nextIndex = 0
+    var len = 0.0
+    var progress = 0.0
+    val speed = 1.0/20.0
+
 }
 
 enum class NodeType {

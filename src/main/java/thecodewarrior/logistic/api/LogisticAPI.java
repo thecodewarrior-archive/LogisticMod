@@ -4,8 +4,8 @@ import com.google.common.collect.Iterables;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-import thecodewarrior.logistic.capability.CapabilityLogisticWorld;
-import thecodewarrior.logistic.capability.LogisticNode;
+import thecodewarrior.logistic.logistics.CapabilityLogisticWorld;
+import thecodewarrior.logistic.logistics.LogisticNode;
 
 import java.util.Collection;
 
@@ -21,7 +21,7 @@ public final class LogisticAPI {
 	 * @return The network, or null if there is no node associated with {@param pos}
 	 */
 	@Nullable
-	public static Network getNetwork(World world, BlockPos pos) {
+	public static INetwork getNetwork(World world, BlockPos pos) {
 		CapabilityLogisticWorld cap = world.getCapability(CapabilityLogisticWorld.getCap(), null);
 		if(cap == null)
 			return null;

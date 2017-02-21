@@ -11,9 +11,9 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
-import thecodewarrior.logistic.capability.BareLogisticNode
-import thecodewarrior.logistic.capability.ClientLogisticTracker
-import thecodewarrior.logistic.capability.EdgeData
+import thecodewarrior.logistic.logistics.BareLogisticNode
+import thecodewarrior.logistic.logistics.ClientLogisticTracker
+import thecodewarrior.logistic.logistics.EdgeData
 import java.awt.Color
 
 /**
@@ -40,14 +40,13 @@ object RenderNetworkLines {
         ClientLogisticTracker.nodes.values.forEach { drawNode(it, Color(0, 0, 128, 255)) }
         tess.draw()
 
-
+        GlStateManager.depthMask(true)
         GlStateManager.depthFunc(GL11.GL_LEQUAL)
 
         vb.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR)
         ClientLogisticTracker.edges.forEach { drawEdge(it, Color(0, 255, 0, 255)) }
         ClientLogisticTracker.nodes.values.forEach { drawNode(it, Color(0, 0, 255, 255)) }
         tess.draw()
-        GlStateManager.depthMask(true)
     }
 
     fun drawNode(node: BareLogisticNode, color: Color) {

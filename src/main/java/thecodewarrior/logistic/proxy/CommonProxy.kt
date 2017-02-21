@@ -16,7 +16,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import thecodewarrior.logistic.block.ModBlocks
 import thecodewarrior.logistic.items.ModItems
-import thecodewarrior.logistic.capability.*
+import thecodewarrior.logistic.logistics.*
 
 /**
  * Created by TheCodeWarrior

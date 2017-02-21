@@ -1,4 +1,4 @@
-package thecodewarrior.logistic.capability
+package thecodewarrior.logistic.logistics
 
 import com.teamwizardry.librarianlib.common.network.PacketBase
 import com.teamwizardry.librarianlib.common.util.autoregister.PacketRegister
@@ -55,6 +55,29 @@ class PacketRemoveEdges : PacketBase() {
         for(i in idsFrom.indices) {
             val e = EdgeData(idsFrom[i], idsTo[i])
             ClientLogisticTracker.edges.remove(e)
+        }
+    }
+}
+
+@PacketRegister(Side.CLIENT)
+class PacketAddDrones : PacketBase() {
+    @Save var ids: IntArray = intArrayOf()
+
+    override fun handle(ctx: MessageContext) {
+        for(i in ids.indices) {
+            ClientLogisticTracker.createDrone(ids[i])
+        }
+    }
+}
+
+@PacketRegister(Side.CLIENT)
+class PacketSetPaths: PacketBase() {
+    @Save var ids: IntArray = intArrayOf()
+    @Save var paths: Array<Array<UUID>> = arrayOf()
+
+    override fun handle(ctx: MessageContext) {
+        for(i in ids.indices) {
+            ClientLogisticTracker.setDronePath(ids[i], paths[i])
         }
     }
 }

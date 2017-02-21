@@ -10,7 +10,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
-import thecodewarrior.logistic.capability.CapabilityLogisticWorld
+import thecodewarrior.logistic.logistics.CapabilityLogisticWorld
 
 /**
  * Created by TheCodeWarrior
