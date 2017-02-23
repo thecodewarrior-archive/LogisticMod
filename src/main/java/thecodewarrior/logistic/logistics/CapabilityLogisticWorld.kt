@@ -313,7 +313,8 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
     }
 
     fun getIdleDrone(): LogisticDrone {
-        return drones.find { it?.idle ?: false } ?: createDrone()
+        val idle = drones.find { it?.idle ?: false }
+        return idle ?: createDrone()
     }
 
     fun createDrone(): LogisticDrone {
@@ -344,6 +345,10 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
     fun updateDrone(id: Int) {
         getDrone(id)?.let { drone ->
             if(!drone.idle) {
+                if(drone.nextIndex == -1) {
+                    drone.nextIndex = 1
+                    drone.len = graph.getEdgeWeight(graph.getEdge(getNode(drone.path[0]), getNode(drone.path[1])))
+                }
                 drone.progress += drone.speed
                 if (drone.progress >= drone.len) {
                     drone.progress -= drone.len
@@ -356,6 +361,12 @@ class CapabilityLogisticWorld(val world: World) : CapabilityMod("logistic:logist
                 }
             }
 //            drone.power--
+        }
+    }
+
+    fun tick() {
+        drones.forEach {
+            if(it != null) updateDrone(it.id)
         }
     }
 }
@@ -382,11 +393,17 @@ class LogisticDrone(val id: Int) {
     val idle: Boolean
         get() = idleAt != null
     var path: Array<UUID> = arrayOf()
+        set(value) {
+            field = value
+            len = -1.0
+            progress = 0.0
+            nextIndex = -1
+            idleAt = null
+        }
     var nextIndex = 0
     var len = 0.0
     var progress = 0.0
     val speed = 1.0/20.0
-
 }
 
 enum class NodeType {

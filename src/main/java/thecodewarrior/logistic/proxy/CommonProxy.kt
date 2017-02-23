@@ -14,6 +14,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent
 import thecodewarrior.logistic.block.ModBlocks
 import thecodewarrior.logistic.items.ModItems
 import thecodewarrior.logistic.logistics.*
@@ -43,6 +44,15 @@ open class CommonProxy {
     fun attach(e: AttachCapabilitiesEvent<World>) {
         if(!e.`object`.isRemote) { // don't attach on client side
             CapabilityLogisticWorld(e.`object`).attach(e)
+        }
+    }
+
+    @SubscribeEvent
+    fun worldTick(e: TickEvent.WorldTickEvent) {
+        if(!e.world.isRemote) {
+            e.world.ifCap(CapabilityLogisticWorld.cap, null) {
+                it.tick()
+            }
         }
     }
 
