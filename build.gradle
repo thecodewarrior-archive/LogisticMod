@@ -38,11 +38,11 @@ minecraft {
 
 }
 
-reobf {
-    jar {
-        extraLines "PK: org/jgrapht thecodewarrior/shade/org/jgrapht"
-    }
-}
+//reobf {
+//    jar {
+//        extraLines "PK: org/jgrapht thecodewarrior/shade/org/jgrapht"
+//    }
+//}
 
 configurations {
     // create a thingy we can use later to find the specific deps we want shaded
@@ -52,7 +52,7 @@ configurations {
 
 dependencies {
     compile "net.shadowfacts:Forgelin:1.2.0"
-    compile "org.jgrapht:jgrapht-core:1.0.1"
+//    shade "org.jgrapht:jgrapht-core:1.0.1"
 }
 
 processResources
