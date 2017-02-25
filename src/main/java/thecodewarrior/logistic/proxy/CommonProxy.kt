@@ -1,14 +1,11 @@
 package thecodewarrior.logistic.proxy
 
-import com.teamwizardry.librarianlib.common.network.PacketHandler
 import com.teamwizardry.librarianlib.common.util.ifCap
-import com.teamwizardry.librarianlib.common.util.saving.serializers.builtin.generics.SerializeGraphs
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.world.World
 import net.minecraftforge.common.DimensionManager
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.AttachCapabilitiesEvent
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
@@ -17,7 +14,7 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import thecodewarrior.logistic.block.ModBlocks
 import thecodewarrior.logistic.items.ModItems
-import thecodewarrior.logistic.logistics.*
+import thecodewarrior.logistic.logistics.WorldCapLogistic
 
 /**
  * Created by TheCodeWarrior
@@ -28,30 +25,22 @@ open class CommonProxy {
     }
 
     open fun pre(e: FMLPreInitializationEvent) {
-        SerializeGraphs
-
         ModBlocks
         ModItems
 
-        CapabilityLogisticWorld.init()
+        WorldCapLogistic.init()
     }
 
     open fun init(e: FMLInitializationEvent) {}
 
     open fun post(e: FMLPostInitializationEvent) {}
 
-    @SubscribeEvent
-    fun attach(e: AttachCapabilitiesEvent<World>) {
-        if(!e.`object`.isRemote) { // don't attach on client side
-            CapabilityLogisticWorld(e.`object`).attach(e)
-        }
-    }
 
     @SubscribeEvent
     fun worldTick(e: TickEvent.WorldTickEvent) {
         if(!e.world.isRemote) {
-            e.world.ifCap(CapabilityLogisticWorld.cap, null) {
-                it.tick()
+            e.world.ifCap(WorldCapLogistic.cap, null) {
+//                it.tick()
             }
         }
     }
@@ -66,22 +55,14 @@ open class CommonProxy {
         syncWorldToPlayer(e.player, DimensionManager.getWorld(e.toDim))
     }
 
+//    fun enterLoadDistance(e: ChunkWatchEvent.Watch)
+//    fun exitLoadDistance(e: ChunkWatchEvent.UnWatch)
+
     fun syncWorldToPlayer(player: EntityPlayer, world: World) {
         if(player !is EntityPlayerMP)
             return
-        world.ifCap(CapabilityLogisticWorld.cap, null) { cap ->
-            PacketHandler.NETWORK.sendTo(PacketAddNodes().apply {
-                val arr = cap.nodeSet.toList()
+        world.ifCap(WorldCapLogistic.cap, null) { cap ->
 
-                ids = arr.map { it.uuid }.toTypedArray()
-                data = arr.map { BareLogisticNode(it.pos, NodeType.NAV) }.toTypedArray()
-            }, player)
-            PacketHandler.NETWORK.sendTo(PacketAddEdges().apply {
-                val arr = cap.edgeSet.toList()
-
-                idsFrom = arr.map { (cap.graph.getEdgeSource(it) as LogisticNode).uuid }.toTypedArray()
-                idsTo = arr.map { (cap.graph.getEdgeTarget(it) as LogisticNode).uuid }.toTypedArray()
-            }, player)
         }
     }
 }

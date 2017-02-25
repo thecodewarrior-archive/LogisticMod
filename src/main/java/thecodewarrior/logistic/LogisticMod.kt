@@ -55,4 +55,4 @@ object LogisticMod {
     }
 }
 
-object LibrarianLog : LoggerBase("LibrarianLib")
+object LogisticLog : LoggerBase("Logistic")

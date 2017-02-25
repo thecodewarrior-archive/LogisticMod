@@ -7,10 +7,10 @@ import java.util.*
  * Created by TheCodeWarrior
  */
 
-class Node<T>(val value: T, val heuristic: Double, var travelTime: Double) : Comparable<Node<T>> {
-    var cameFrom: Node<T>? = null
+class AStarNode<T>(val value: T, val heuristic: Double, var travelTime: Double) : Comparable<AStarNode<T>> {
+    var cameFrom: AStarNode<T>? = null
 
-    override fun compareTo(other: Node<T>): Int {
+    override fun compareTo(other: AStarNode<T>): Int {
         val v = (this.heuristic + this.travelTime) - (other.heuristic + other.travelTime)
         if(v < 0)
             return -1
@@ -25,10 +25,10 @@ object AStar {
 
     fun <T, E> pathfind(start: T, goal: T, graph: SimpleWeightedGraph<T, E>, heuristic: (T) -> Double, weightAdjust: (Double) -> Double): List<T> {
         val visited = mutableSetOf<T>()
-        val queueMap = mutableMapOf<T, Node<T>>()
-        val queue = TreeSet<Node<T>>()
+        val queueMap = mutableMapOf<T, AStarNode<T>>()
+        val queue = TreeSet<AStarNode<T>>()
 
-        val n = Node(start, heuristic(start), 0.0)
+        val n = AStarNode(start, heuristic(start), 0.0)
         queueMap.put(start, n)
         queue.add(n)
 
@@ -62,7 +62,7 @@ object AStar {
                         n.cameFrom = current
                     }
                 } else {
-                    val n = Node(neighbor, heuristic(neighbor), current.travelTime + weight)
+                    val n = AStarNode(neighbor, heuristic(neighbor), current.travelTime + weight)
                     n.cameFrom = current
                     queueMap.put(neighbor, n)
                     queue.add(n)
@@ -73,10 +73,10 @@ object AStar {
         return listOf()
     }
 
-    private fun <T> getPath(node: Node<T>): List<T> {
+    private fun <T> getPath(node: AStarNode<T>): List<T> {
         val list = mutableListOf<T>()
 
-        var current: Node<T>? = node
+        var current: AStarNode<T>? = node
         while(current != null) {
             list.add(current.value)
             current = current.cameFrom

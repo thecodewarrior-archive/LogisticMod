@@ -38,11 +38,11 @@ minecraft {
 
 }
 
-//reobf {
-//    jar {
-//        extraLines "PK: org/jgrapht thecodewarrior/shade/org/jgrapht"
-//    }
-//}
+reobf {
+    jar {
+        extraLines "PK: gnu/trove thecodewarrior/logistic/shade/gnu/trove"
+    }
+}
 
 configurations {
     // create a thingy we can use later to find the specific deps we want shaded
