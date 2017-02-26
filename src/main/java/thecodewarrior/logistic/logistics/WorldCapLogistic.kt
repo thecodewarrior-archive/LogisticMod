@@ -8,6 +8,7 @@ import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import net.minecraft.world.WorldServer
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.common.capabilities.CapabilityInject
@@ -16,6 +17,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import thecodewarrior.logistic.api.LogisticWorld
 import thecodewarrior.logistic.logistics.nodes.Node
 import thecodewarrior.logistic.logistics.nodes.NodeManager
+import thecodewarrior.logistic.logistics.sync.ChangeTracker
 
 /**
  * Created by TheCodeWarrior
@@ -51,7 +53,7 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
     ==================================================================================================================*/
 
     override fun getNode(pos: BlockPos): Node? = nodeManager.getNode(pos)
-    override fun addNode(pos: BlockPos, offset: Vec3d, type: NodeType): Boolean = nodeManager.addNode(pos, offset, type)
+    override fun addNode(pos: BlockPos, offset: Vec3d, logistic: NodeLogisticData?): Boolean = nodeManager.addNode(pos, offset, logistic)
     override fun removeNode(pos: BlockPos): Boolean = nodeManager.removeNode(pos)
 
     /*==================================================================================================================
@@ -60,14 +62,7 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
     @Save
     private val nodeManager = NodeManager(this)
 
-//    private val netsByChunk = ChunkIndexer() // nets by chunk (chunk -> net id)
-//
-//    private val nets = IDStore<Network>() // nets (net id -> net)
-//
-//    fun getNodesForPos(pos: BlockPos): List<AStarNode> {
-//        val chunk = ChunkPos(pos)
-//        return netsByChunk[chunk]
-//    }
+    internal val changeTracker = ChangeTracker(this)
 
     override fun writeCustomNBT(nbtTagCompound: NBTTagCompound) {
         super.writeCustomNBT(nbtTagCompound)
@@ -75,6 +70,10 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
 
     override fun readCustomNBT(nbtTagCompound: NBTTagCompound) {
         super.readCustomNBT(nbtTagCompound)
+    }
+
+    fun tick(world: WorldServer) {
+        changeTracker.sync(world)
     }
 }
 

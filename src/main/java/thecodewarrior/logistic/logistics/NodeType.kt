@@ -1,11 +1,11 @@
 package thecodewarrior.logistic.logistics
 
+import com.teamwizardry.librarianlib.common.util.saving.Savable
+
 /**
  * Created by TheCodeWarrior
  */
-
-open class NodeType {
+@Savable
+class NodeLogisticData {
 
 }
-
-object NavigationNode : NodeType()

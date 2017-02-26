@@ -1,25 +1,25 @@
 package thecodewarrior.logistic.logistics.nodes
 
-import com.teamwizardry.librarianlib.common.util.saving.Savable
 import com.teamwizardry.librarianlib.common.util.saving.Save
+import com.teamwizardry.librarianlib.common.util.saving.SaveInPlace
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import thecodewarrior.logistic.LogisticLog
-import thecodewarrior.logistic.logistics.NodeType
+import thecodewarrior.logistic.logistics.NodeLogisticData
 import thecodewarrior.logistic.logistics.WorldCapLogistic
 import thecodewarrior.logistic.util.collections.BlockMap
 
 /**
  * Created by TheCodeWarrior
  */
-@Savable
+@SaveInPlace
 class NodeManager(val cap: WorldCapLogistic) {
     /*==================================================================================================================
                     API
     ==================================================================================================================*/
     fun getNode(pos: BlockPos): Node? = nodes.get(pos)
 
-    fun addNode(pos: BlockPos, offset: Vec3d, type: NodeType): Boolean {
+    fun addNode(pos: BlockPos, offset: Vec3d, logistic: NodeLogisticData?): Boolean {
         var offset = offset
         if(offset.xCoord < -3 || offset.yCoord < -3 || offset.zCoord < -3 || offset.xCoord > 3 || offset.yCoord > 3 || offset.zCoord > 3) {
             LogisticLog.warn("Node offset to large (%s), it must be inside [±3, ±3, ±3]", offset)
@@ -29,7 +29,9 @@ class NodeManager(val cap: WorldCapLogistic) {
             LogisticLog.error("Can not add node to %s for pos %s, the block already has a node.", cap.world, pos)
             return false
         }
-        nodes[pos] = Node(pos, offset, type)
+        val node = Node(pos, offset, logistic)
+        nodes[pos] = node
+        cap.changeTracker.addNode(node)
         return true
     }
 
@@ -39,6 +41,7 @@ class NodeManager(val cap: WorldCapLogistic) {
             return false
         }
         nodes.remove(pos)
+        cap.changeTracker.removeNode(pos)
         return true
     }
 

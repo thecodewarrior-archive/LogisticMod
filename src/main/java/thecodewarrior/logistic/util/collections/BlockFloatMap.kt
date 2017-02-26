@@ -1,5 +1,7 @@
 package thecodewarrior.logistic.util.collections
 
+import com.teamwizardry.librarianlib.common.util.saving.Savable
+import com.teamwizardry.librarianlib.common.util.saving.Save
 import gnu.trove.map.TLongFloatMap
 import gnu.trove.map.hash.TLongFloatHashMap
 import net.minecraft.util.math.BlockPos
@@ -7,7 +9,9 @@ import net.minecraft.util.math.BlockPos
 /**
  * Created by TheCodeWarrior
  */
+@Savable
 class BlockFloatMap {
+    @Save
     private val map: TLongFloatMap = TLongFloatHashMap()
 
     operator fun get(key: BlockPos): Float {

@@ -4,6 +4,7 @@ import com.teamwizardry.librarianlib.common.util.ifCap
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.world.World
+import net.minecraft.world.WorldServer
 import net.minecraftforge.common.DimensionManager
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
@@ -38,9 +39,10 @@ open class CommonProxy {
 
     @SubscribeEvent
     fun worldTick(e: TickEvent.WorldTickEvent) {
-        if(!e.world.isRemote) {
-            e.world.ifCap(WorldCapLogistic.cap, null) {
-//                it.tick()
+        val world = e.world
+        if(world is WorldServer) {
+            world.ifCap(WorldCapLogistic.cap, null) {
+                it.tick(world)
             }
         }
     }

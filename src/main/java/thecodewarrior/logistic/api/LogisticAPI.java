@@ -6,7 +6,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import thecodewarrior.logistic.LogisticLog;
-import thecodewarrior.logistic.logistics.NodeType;
+import thecodewarrior.logistic.logistics.NodeLogisticData;
 import thecodewarrior.logistic.logistics.WorldCapLogistic;
 import thecodewarrior.logistic.logistics.nodes.Node;
 
@@ -25,6 +25,10 @@ public class LogisticAPI {
 	 */
 	@NotNull
 	public static LogisticWorld forWorld(@NotNull World world) {
+		
+		if(world.isRemote)
+			return DUMMY_WORLD;
+		
 		WorldCapLogistic cap = world.getCapability(WorldCapLogistic.getCap(), null);
 		if(cap == null) {
 			long currentTime = System.currentTimeMillis();
@@ -46,7 +50,7 @@ public class LogisticAPI {
 	public static final LogisticWorld DUMMY_WORLD = new LogisticWorld() {
 		
 		@Override
-		public boolean addNode(@NotNull BlockPos pos, @NotNull Vec3d offset, @NotNull NodeType type) { return false; }
+		public boolean addNode(@NotNull BlockPos pos, @NotNull Vec3d offset, @Nullable NodeLogisticData logistic) { return false; }
 		
 		@Override
 		public boolean removeNode(@NotNull BlockPos pos) { return false; }
