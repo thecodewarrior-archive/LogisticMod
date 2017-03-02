@@ -9,7 +9,7 @@ import thecodewarrior.logistic.util.collections.BlockMap
 /**
  * Created by TheCodeWarrior
  */
-object ClientInfoTracker {
+object ClientNetInfoTracker {
     init {
         MinecraftForge.EVENT_BUS.register(this)
     }
@@ -19,5 +19,6 @@ object ClientInfoTracker {
     @SubscribeEvent
     fun switchWorld(e: WorldEvent.Unload) {
         nodes.clear()
+        NodeNetRenderer.rebuild()
     }
 }

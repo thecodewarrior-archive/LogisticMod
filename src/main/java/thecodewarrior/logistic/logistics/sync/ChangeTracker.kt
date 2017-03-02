@@ -28,11 +28,17 @@ class ChangeTracker(val cap: WorldCapLogistic) {
     }
 
     fun sync(world: WorldServer) {
+        val changeTrackers = arrayOf(nodesAdded, nodesDeleted)
+        if(changeTrackers.all { it.changes.isEmpty() })
+            return
         world.playerEntities.forEach { player ->
             player as EntityPlayerMP
-
-            PacketHandler.NETWORK.sendTo(PacketNodes(nodesDeleted.changesFor(player), nodesAdded.changesFor(player)), player)
+            val deleted = nodesDeleted.changesFor(player)
+            val added = nodesAdded.changesFor(player)
+            if(added.isNotEmpty() || deleted.isNotEmpty())
+                PacketHandler.NETWORK.sendTo(PacketNodes(added, deleted), player)
         }
+        changeTrackers.forEach { it.clear() }
     }
 }
 
@@ -48,5 +54,9 @@ class ChangeCounter<C> {
 
         return changes.filter { chunkMap.isPlayerWatchingChunk(player,  it.key.chunkXPos, it.key.chunkZPos) }
                 .values.fold(mutableListOf<C>()) { fold, value -> fold.addAll(value); fold }
+    }
+
+    fun clear() {
+        changes.clear()
     }
 }

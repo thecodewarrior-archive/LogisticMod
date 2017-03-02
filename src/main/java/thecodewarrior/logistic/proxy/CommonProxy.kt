@@ -7,12 +7,14 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraftforge.common.DimensionManager
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.event.world.ChunkWatchEvent
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import thecodewarrior.logistic.api.LogisticAPI
 import thecodewarrior.logistic.block.ModBlocks
 import thecodewarrior.logistic.items.ModItems
 import thecodewarrior.logistic.logistics.WorldCapLogistic
@@ -57,8 +59,10 @@ open class CommonProxy {
         syncWorldToPlayer(e.player, DimensionManager.getWorld(e.toDim))
     }
 
-//    fun enterLoadDistance(e: ChunkWatchEvent.Watch)
-//    fun exitLoadDistance(e: ChunkWatchEvent.UnWatch)
+    @SubscribeEvent
+    fun enterLoadDistance(e: ChunkWatchEvent.Watch) {
+        (LogisticAPI.forWorld(e.player.world) as? WorldCapLogistic)?.sendChunkToPlayer(e.chunk, e.player)
+    }
 
     fun syncWorldToPlayer(player: EntityPlayer, world: World) {
         if(player !is EntityPlayerMP)

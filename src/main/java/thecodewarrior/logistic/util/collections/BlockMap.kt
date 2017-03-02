@@ -14,16 +14,29 @@ class BlockMap<T: Any> {
     @Save
     private val map: TLongObjectMap<T> = TLongObjectHashMap<T>()
 
-    val keySet: Iterable<BlockPos> by lazy {
-        object : Iterable<BlockPos> {
-            override fun iterator(): Iterator<BlockPos> {
-                val realIter = map.keySet().iterator()
-                return object : Iterator<BlockPos> {
-                    override fun hasNext() = realIter.hasNext()
-                    override fun next() = BlockPos.fromLong(realIter.next())
-                }
+    val values: Collection<T>
+        get() = map.valueCollection()
+
+    val keys: Set<BlockPos> = object: Set<BlockPos> {
+        override val size: Int
+            get() = map.size()
+
+        override fun contains(element: BlockPos) = map.containsKey(element.toLong())
+
+        override fun containsAll(elements: Collection<BlockPos>) = elements.all { this.contains(it) }
+
+        override fun isEmpty() = map.isEmpty
+
+        override fun iterator(): Iterator<BlockPos> {
+            val backingIter = map.keySet().iterator()
+            return object : Iterator<BlockPos> {
+                override fun hasNext() = backingIter.hasNext()
+
+                override fun next() = BlockPos.fromLong(backingIter.next())
+
             }
         }
+
     }
 
     operator fun get(key: BlockPos): T? {

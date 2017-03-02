@@ -2,10 +2,13 @@ package thecodewarrior.logistic.logistics
 
 import com.teamwizardry.librarianlib.common.base.capability.CapabilityMod
 import com.teamwizardry.librarianlib.common.base.capability.ICapabilityObjectProvider
+import com.teamwizardry.librarianlib.common.network.PacketHandler
 import com.teamwizardry.librarianlib.common.util.saving.Save
 import com.teamwizardry.librarianlib.common.util.toRl
+import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -18,6 +21,7 @@ import thecodewarrior.logistic.api.LogisticWorld
 import thecodewarrior.logistic.logistics.nodes.Node
 import thecodewarrior.logistic.logistics.nodes.NodeManager
 import thecodewarrior.logistic.logistics.sync.ChangeTracker
+import thecodewarrior.logistic.packets.PacketNodes
 
 /**
  * Created by TheCodeWarrior
@@ -57,8 +61,18 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
     override fun removeNode(pos: BlockPos): Boolean = nodeManager.removeNode(pos)
 
     /*==================================================================================================================
+                    PRIVATE API
+    ==================================================================================================================*/
+
+    fun  sendChunkToPlayer(chunk: ChunkPos, player: EntityPlayerMP) {
+        val nodes = nodeManager.getNodesInChunk(chunk)
+        PacketHandler.NETWORK.sendTo(PacketNodes(nodes, listOf()), player)
+    }
+
+    /*==================================================================================================================
                     IMPLEMENTATION
     ==================================================================================================================*/
+
     @Save
     private val nodeManager = NodeManager(this)
 
@@ -75,5 +89,6 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
     fun tick(world: WorldServer) {
         changeTracker.sync(world)
     }
+
 }
 

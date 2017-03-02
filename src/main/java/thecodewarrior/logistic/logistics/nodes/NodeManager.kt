@@ -3,11 +3,13 @@ package thecodewarrior.logistic.logistics.nodes
 import com.teamwizardry.librarianlib.common.util.saving.Save
 import com.teamwizardry.librarianlib.common.util.saving.SaveInPlace
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import thecodewarrior.logistic.LogisticLog
 import thecodewarrior.logistic.logistics.NodeLogisticData
 import thecodewarrior.logistic.logistics.WorldCapLogistic
 import thecodewarrior.logistic.util.collections.BlockMap
+import thecodewarrior.logistic.util.collections.ChunkMultiMap
 
 /**
  * Created by TheCodeWarrior
@@ -31,17 +33,21 @@ class NodeManager(val cap: WorldCapLogistic) {
         }
         val node = Node(pos, offset, logistic)
         nodes[pos] = node
+        nodesByChunk.add(ChunkPos(pos), node)
         cap.changeTracker.addNode(node)
         return true
     }
 
     fun removeNode(pos: BlockPos): Boolean {
-        if(nodes.contains(pos)) {
-            LogisticLog.error("Can not add node to %s for pos %s, the block already has a node.", cap.world, pos)
+        if(!nodes.contains(pos)) {
+            LogisticLog.error("Can not remove node to %s for pos %s, the block does not have a node.", cap.world, pos)
             return false
         }
-        nodes.remove(pos)
-        cap.changeTracker.removeNode(pos)
+        val removed = nodes.remove(pos)
+        if(removed != null) {
+            nodesByChunk.remove(ChunkPos(pos), removed)
+            cap.changeTracker.removeNode(pos)
+        }
         return true
     }
 
@@ -50,4 +56,11 @@ class NodeManager(val cap: WorldCapLogistic) {
     ==================================================================================================================*/
     @Save
     private val nodes = BlockMap<Node>()
+
+    @Save
+    private val nodesByChunk = ChunkMultiMap<Node>()
+
+    fun getNodesInChunk(chunk: ChunkPos): Collection<Node> {
+        return nodesByChunk.get(chunk)
+    }
 }
