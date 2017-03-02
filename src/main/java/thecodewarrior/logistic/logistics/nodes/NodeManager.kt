@@ -22,6 +22,7 @@ class NodeManager(val cap: WorldCapLogistic) {
     fun getNode(pos: BlockPos): Node? = nodes.get(pos)
 
     fun addNode(pos: BlockPos, offset: Vec3d, logistic: NodeLogisticData?): Boolean {
+        checkChangeLimit()
         var offset = offset
         if(offset.xCoord < -3 || offset.yCoord < -3 || offset.zCoord < -3 || offset.xCoord > 3 || offset.yCoord > 3 || offset.zCoord > 3) {
             LogisticLog.warn("Node offset to large (%s), it must be inside [±3, ±3, ±3]", offset)
@@ -39,8 +40,9 @@ class NodeManager(val cap: WorldCapLogistic) {
     }
 
     fun removeNode(pos: BlockPos): Boolean {
+        checkChangeLimit()
         if(!nodes.contains(pos)) {
-            LogisticLog.error("Can not remove node to %s for pos %s, the block does not have a node.", cap.world, pos)
+            LogisticLog.error("Can not remove node from %s for pos %s, the block does not have a node.", cap.world, pos)
             return false
         }
         val removed = nodes.remove(pos)
@@ -62,5 +64,17 @@ class NodeManager(val cap: WorldCapLogistic) {
 
     fun getNodesInChunk(chunk: ChunkPos): Collection<Node> {
         return nodesByChunk.get(chunk)
+    }
+
+    fun checkChangeLimit() {
+        if(perTickChangeCount > MAX_CHANGES_PER_TICK)
+            throw IllegalStateException("More than $MAX_CHANGES_PER_TICK node network changes occurred in one tick. What the hell are you doing?")
+        perTickChangeCount ++
+    }
+
+    internal var perTickChangeCount = 0
+
+    companion object {
+        internal val MAX_CHANGES_PER_TICK = 100000
     }
 }

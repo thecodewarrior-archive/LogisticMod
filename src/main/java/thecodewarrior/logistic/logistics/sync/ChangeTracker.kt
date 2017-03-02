@@ -8,6 +8,7 @@ import net.minecraft.world.WorldServer
 import thecodewarrior.logistic.logistics.WorldCapLogistic
 import thecodewarrior.logistic.logistics.nodes.Node
 import thecodewarrior.logistic.packets.PacketNodes
+import java.util.*
 
 /**
  * Created by TheCodeWarrior
@@ -38,15 +39,16 @@ class ChangeTracker(val cap: WorldCapLogistic) {
             if(added.isNotEmpty() || deleted.isNotEmpty())
                 PacketHandler.NETWORK.sendTo(PacketNodes(added, deleted), player)
         }
+
         changeTrackers.forEach { it.clear() }
     }
 }
 
 class ChangeCounter<C> {
-    val changes = mutableMapOf<ChunkPos, MutableList<C>>()
+    val changes = mutableMapOf<ChunkPos, Deque<C>>()
 
     fun add(chunk: ChunkPos, change: C) {
-        changes.getOrPut(chunk, { mutableListOf() }).add(change)
+        changes.getOrPut(chunk, { LinkedList() }).push(change)
     }
 
     fun changesFor(player: EntityPlayerMP) : List<C> {
@@ -57,6 +59,6 @@ class ChangeCounter<C> {
     }
 
     fun clear() {
-        changes.clear()
+        changes.values.clear()
     }
 }

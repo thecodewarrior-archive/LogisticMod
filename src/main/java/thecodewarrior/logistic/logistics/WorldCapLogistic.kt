@@ -50,6 +50,7 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
             })
             MinecraftForge.EVENT_BUS.register(WorldCapLogistic::class.java)
         }
+
     }
 
     /*==================================================================================================================
@@ -88,6 +89,7 @@ class WorldCapLogistic(val world: World) : CapabilityMod("logistic:logisticWorld
 
     fun tick(world: WorldServer) {
         changeTracker.sync(world)
+        nodeManager.perTickChangeCount = 0
     }
 
 }

@@ -15,12 +15,16 @@ class BlockLogisticChest : BlockMod("logisticChest", Material.ROCK){
     override fun onBlockAdded(worldIn: World, pos: BlockPos, state: IBlockState) {
         super.onBlockAdded(worldIn, pos, state)
 
-        LogisticAPI.forWorld(worldIn).addNode(pos, vec(0.5, 1.5, 0.5), null)
+        BlockPos.getAllInBox(pos, pos.add(100, 5, 100)).forEach {
+            LogisticAPI.forWorld(worldIn).addNode(it, vec(0.5, 1.5, 0.5), null)
+        }
     }
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
         super.breakBlock(worldIn, pos, state)
 
-        LogisticAPI.forWorld(worldIn).removeNode(pos)
+        BlockPos.getAllInBox(pos, pos.add(100, 5, 100)).forEach {
+            LogisticAPI.forWorld(worldIn).removeNode(pos)
+        }
     }
 }
